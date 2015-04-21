@@ -4,10 +4,12 @@ import android.app.Fragment;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.mapquest.android.maps.DefaultItemizedOverlay;
 import com.mapquest.android.maps.GeoPoint;
@@ -40,6 +42,9 @@ public class MapFragment extends Fragment {
 
     // Mapquest API KEY
     private String MAPQUEST_API_KEY;
+
+    // Mapquest Directions Api StatusCode
+    private static final String MAPQUEST_STATUS_CODE_OK = "0";
 
 /************************************************************************************/
 /** LIFE CYLCE **/
@@ -164,6 +169,7 @@ public class MapFragment extends Fragment {
             } catch (JSONException e) {
                 // TODO Handle problems..
 
+
             }finally {
                 try{
                     input.close();
@@ -177,18 +183,39 @@ public class MapFragment extends Fragment {
 
         // POST EXECUTE
         protected void onPostExecute(JSONObject jsonResponse) {
-            // Create the RouteResponse from JSON Responso, aka from Web Service
-            RouteResponse response = new RouteResponse(jsonResponse);
+            // Beofore processing the response, let's check it has no errors. If no error is
+            // present, then "statuscode" (string) inside "info"(object) must be "0"
+            String statuscode = "-1";               // Assume Error
+            String message = "null";                // Assume No Message
+            try{
+                JSONObject info = jsonResponse.getJSONObject("info");
+                statuscode = info.optString("statuscode");
+                message = info.optString("messages");
+            } catch (JSONException e) {
+                // TODO Handle problems.
+            }
 
-            // Create a RouteManager as John Duncan suggested using your API KEY
-            Duncan_RouteManager duncanRouteManager = new Duncan_RouteManager(getActivity().getApplicationContext(), MAPQUEST_API_KEY);
+            if(statuscode.equals(MAPQUEST_STATUS_CODE_OK)) {
+                // Create the RouteResponse from JSON Response, aka from Web Service
+                RouteResponse response = new RouteResponse(jsonResponse);
 
-            // Get the route from the response
-            LineOverlay routeLine = duncanRouteManager.getRouteOverlay(response);
-            map.getOverlays().add(routeLine);
-            map.postInvalidate();
+                // Create a RouteManager as John Duncan suggested using your API KEY
+                Duncan_RouteManager duncanRouteManager = new Duncan_RouteManager(getActivity().getApplicationContext(), MAPQUEST_API_KEY);
 
-            //String itinerary = duncanRouteManager.getHTMLItinerary(response);
+                // Get the route from the response
+                LineOverlay routeLine = duncanRouteManager.getRouteOverlay(response);
+                map.getOverlays().add(routeLine);
+                map.postInvalidate();
+
+            }else{
+                // If statuscode is not "0" then we can't create the route, because it would fail and
+                // app will force close
+                String errText = getResources().getString(R.string.error_route_status_code);
+                errText += statuscode + "\r\n" ;
+                errText += getResources().getString(R.string.error_route_message);
+                errText += message;
+                Toast.makeText(getActivity().getApplicationContext(), errText , Toast.LENGTH_LONG).show();
+            }
         }
     }
 
