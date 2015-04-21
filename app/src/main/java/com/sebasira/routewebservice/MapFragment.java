@@ -1,6 +1,8 @@
 package com.sebasira.routewebservice;
 
+import android.app.Activity;
 import android.app.Fragment;
+import android.app.ProgressDialog;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -87,7 +89,7 @@ public class MapFragment extends Fragment {
 
         map.invalidate();                           // Re-Draw the map
 
-        new GetRouteTask().execute("http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY + "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0&locale=en_US&unit=m&from=-32.947444,-60.630304&to=-32.947048,-60.631699&drivingStyle=2&highwayEfficiency=21.0");
+        new GetRouteTask(getActivity()).execute("http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY + "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0&locale=en_US&unit=m&from=-32.947444,-60.630304&to=-32.947048,-60.631699&drivingStyle=2&highwayEfficiency=21.0");
 
         return rootView;
     }
@@ -137,6 +139,20 @@ public class MapFragment extends Fragment {
      * http://developer.mapquest.com/widget/web/products/forums/-/message_boards/message/1381991
      */
     private class GetRouteTask extends AsyncTask<String, Void, JSONObject> {
+        private ProgressDialog progrress_dialog;
+
+        // CONSTRUCTOR
+        public GetRouteTask(Activity activity) {
+            // Create the progress dialog
+            progrress_dialog = new ProgressDialog(activity);
+        }
+
+        // ON PRE EXECUTE
+        protected void onPreExecute() {
+            // Show the progress dialog
+            progrress_dialog.setMessage(getResources().getString(R.string.waiting_route));
+            progrress_dialog.show();
+        }
 
         // DO IN BACKGROUND
         protected JSONObject doInBackground(String... str_url) {
@@ -183,6 +199,11 @@ public class MapFragment extends Fragment {
 
         // POST EXECUTE
         protected void onPostExecute(JSONObject jsonResponse) {
+            // Dismiss the progress dialog
+            if (progrress_dialog.isShowing()) {
+                progrress_dialog.dismiss();
+            }
+
             // Beofore processing the response, let's check it has no errors. If no error is
             // present, then "statuscode" (string) inside "info"(object) must be "0"
             String statuscode = "-1";               // Assume Error
