@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+	<com.mapquest.android.maps.MapView
+		    xmlns:android="http://schemas.android.com/apk/res/android"
+		    android:id="@+id/map"
+		    android:layout_width="match_parent"
+		    android:layout_height="match_parent"
+		    android:clickable="true"
+		    android:enabled="true"
+		    android:apiKey=""
+	  	/>
+    <!-- notice there is no android:apiKey property on the MapView. 
+	    	This will make the map use OpenStreetMap data 
+	    	android:apiKey="Fmjtd%7Cluur2luan0%2C8a%3Do5-9010hf"
+	    	-->
+</RelativeLayout>
