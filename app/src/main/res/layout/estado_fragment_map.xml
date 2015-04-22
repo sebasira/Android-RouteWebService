@@ -14,6 +14,39 @@
 	  	/>
     <!-- notice there is no android:apiKey property on the MapView. 
 	    	This will make the map use OpenStreetMap data 
-	    	android:apiKey="Fmjtd%7Cluur2luan0%2C8a%3Do5-9010hf"
+	    	android:apiKey=""
 	    	-->
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="25dp"
+        android:background="@android:color/white">
+
+        <Button
+            android:id="@+id/btn_prev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/prev"
+            android:layout_alignParentStart="true"
+        />
+
+        <TextView
+            android:id="@+id/tv_manouver"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textAppearance="@android:style/TextAppearance.Large"
+        />
+
+        <Button
+            android:id="@+id/btn_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/next"
+            android:layout_alignParentEnd="true"
+            />
+
+    </RelativeLayout>
 </RelativeLayout>

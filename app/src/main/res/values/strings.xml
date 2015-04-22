@@ -7,5 +7,10 @@
     <string name="error_route_status_code">Can not create the route!. Status Code: </string>
     <string name="error_route_message">Message: </string>
 
+    <string name="prev">PREV</string>
+    <string name="next">NEXT</string>
+
+    <string name="no_maneuver_narrative">No maneuver narrative</string>
+
 
 </resources>

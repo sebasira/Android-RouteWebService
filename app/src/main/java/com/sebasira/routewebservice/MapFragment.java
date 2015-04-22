@@ -8,23 +8,25 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mapquest.android.maps.DefaultItemizedOverlay;
 import com.mapquest.android.maps.GeoPoint;
 import com.mapquest.android.maps.LineOverlay;
 import com.mapquest.android.maps.MapView;
-import com.mapquest.android.maps.Overlay;
 import com.mapquest.android.maps.OverlayItem;
 import com.mapquest.android.maps.RouteResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,6 +56,16 @@ public class MapFragment extends Fragment {
     private GeoPoint defaultCenterPoint =  new GeoPoint(-32.9476917,-60.6304694);
     private GeoPoint defaultStartPoint =  new GeoPoint(-32.947444,-60.630304);
     private GeoPoint defaultEndPoint =  new GeoPoint(-32.945859,-60.632354);
+
+    // Maneuvers
+    private JSONArray maneuvers;
+    private int displayingManeuverIndex;
+    private int totalMeneuvers;
+
+    // Maneuvers UI
+    private TextView tv_maneuver;
+    private Button btn_prev;
+    private Button btn_next;
 
 /************************************************************************************/
 /** LIFE CYLCE **/
@@ -96,6 +108,24 @@ public class MapFragment extends Fragment {
 
         map.invalidate();                           // Re-Draw the map
 
+        // Maneuvers Display and controls
+        tv_maneuver = (TextView) rootView.findViewById(R.id.tv_manouver);
+
+        btn_prev = (Button) rootView.findViewById(R.id.btn_prev);
+        btn_prev.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                displayManeuver(displayingManeuverIndex - 1);               // Display de previous maneuver
+            }
+        });
+
+        btn_next = (Button) rootView.findViewById(R.id.btn_next);
+        btn_next.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                displayManeuver(displayingManeuverIndex + 1);               // Display de next maneuver
+            }
+        });
 
         // Request the route (Direction API) from mapquest
         String directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
@@ -103,7 +133,7 @@ public class MapFragment extends Fragment {
                 "&from=" + defaultStartPoint.getLatitudeE6()/1E6 + "," + defaultStartPoint.getLongitudeE6()/1E6 +
                 "&to=" + defaultEndPoint.getLatitudeE6()/1E6 + "," + defaultEndPoint.getLongitudeE6()/1E6 +
                 "&drivingStyle=2&highwayEfficiency=21.0";
-        Log.d(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
+        Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
         new GetRouteTask(getActivity()).execute(directions_api_request_url);
 
         return rootView;
@@ -139,6 +169,50 @@ public class MapFragment extends Fragment {
     }
 
 
+/************************************************************************************/
+/** PRIVATE ROUTINES **/
+
+    /* DISPLAY MANEUVER */
+    /* **************** */
+
+    /** This method display the maneuver #idx from the JSONArray of maneuvers.
+     * Ir also modiffy the UI accordingly (enable/disable prev/next buttons)
+     *
+     * @param idx index of the maneuver to display
+     */
+    private void displayManeuver (int idx){
+        // Before displaying, there must be at least one maneuver, and the index must be lower
+        // than the total, and also greater or equal to zero
+        if ((totalMeneuvers > 0) && (idx >= 0) && (idx < totalMeneuvers)) {
+            String maneuver_narrative = getResources().getString(R.string.no_maneuver_narrative);   // Assume no narrative
+            try{
+                maneuver_narrative = maneuvers.getJSONObject(idx).optString("narrative");     // Get the "narrative" of the IDX maneuver object
+            }catch (JSONException e){
+                // TODO Handle problems.
+                Log.e(TAG, Log.getStackTraceString(e));
+            }
+            tv_maneuver.setText(maneuver_narrative);    // Set maneuver text
+            displayingManeuverIndex = idx;              // Displaying maneuver index 0
+
+            // Next/Prev Buttons Enable Control
+            if (idx == 0){
+                btn_prev.setEnabled(false);             // Index = 0 -> No previous
+                if (totalMeneuvers == 1){
+                    btn_next.setEnabled(false);         // Total = 1 -> No next
+                }else{
+                    btn_next.setEnabled(true);          // Has others
+                }
+
+            }else if (idx == totalMeneuvers - 1){
+                btn_prev.setEnabled(true);
+                btn_next.setEnabled(false);             // Index = (total - 1) -> No next
+
+            }else{
+                btn_next.setEnabled(true);
+                btn_prev.setEnabled(true);
+            }
+        }
+    }
 
 /************************************************************************************/
 /** ROUTE FROM WEB SERVICE **/
@@ -190,15 +264,19 @@ public class MapFragment extends Fragment {
 
             }catch (MalformedURLException e){
                 // TODO Handle problems..
+                Log.e(TAG, Log.getStackTraceString(e));
 
             } catch (ClientProtocolException e) {
                 // TODO Handle problems..
+                Log.e(TAG, Log.getStackTraceString(e));
 
             } catch (IOException e) {
                 // TODO Handle problems..
+                Log.e(TAG, Log.getStackTraceString(e));
 
             } catch (JSONException e) {
                 // TODO Handle problems..
+                Log.e(TAG, Log.getStackTraceString(e));
 
 
             }finally {
@@ -206,6 +284,7 @@ public class MapFragment extends Fragment {
                     input.close();
                 } catch (IOException e) {
                     // TODO Handle problems..
+                    Log.e(TAG, Log.getStackTraceString(e));
                 }
             }
 
@@ -229,6 +308,7 @@ public class MapFragment extends Fragment {
                 message = info.optString("messages");
             } catch (JSONException e) {
                 // TODO Handle problems.
+                Log.e(TAG, Log.getStackTraceString(e));
             }
 
             if(statuscode.equals(MAPQUEST_STATUS_CODE_OK)) {
@@ -243,6 +323,12 @@ public class MapFragment extends Fragment {
                 map.getOverlays().add(routeLine);
                 map.postInvalidate();
 
+                // This response also have "maneuvers" inside "legs", so let's extract them
+                getManeuvers(jsonResponse);
+                displayManeuver(0);                         // Display the first maneuver
+
+
+
             }else{
                 // If statuscode is not "0" then we can't create the route, because it would fail and
                 // app will force close
@@ -250,7 +336,47 @@ public class MapFragment extends Fragment {
                 errText += statuscode + "\r\n" ;
                 errText += getResources().getString(R.string.error_route_message);
                 errText += message;
-                Toast.makeText(getActivity().getApplicationContext(), errText , Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity().getApplicationContext(), errText, Toast.LENGTH_LONG).show();
+            }
+        }
+
+
+        // GET MANEUVERS FORM ROUTE RESPONSE
+
+        /** If you look at the response you'll see something like this:
+         *  "route":{
+         *      ... other values..
+         *      "legs":[{
+         *          ... other values..
+         *          "maneuvers":[{
+         *              ..maneuver0..
+         *          },{
+         *              ..maneuver1..
+         *          },{
+         *              ..maneuverN..
+         *          }],
+         *  }
+         *
+         *  So, there is a JSONObject named "route" wich contain a JSONArray name "legs". As
+         *  we have NO WAYPOINTS then our trip consist in ONLY ONE LEG. Then we get the first object
+         *  of that leg (index = 0); and finally get a JSONArray for the maneuvers within that
+         *  object.
+         *
+         * @param response JSON response from MapQuest Directions Api Web Service
+         */
+        private void getManeuvers (JSONObject response){
+            totalMeneuvers = 0;                                                 // Assume no maneuvers
+            try{
+                JSONObject route = response.getJSONObject("route");             // Get JSONObjet route
+                JSONArray legs= route.getJSONArray("legs");                     // Get JSONArray legs from JSONObjet route
+                maneuvers = legs.getJSONObject(0).getJSONArray("maneuvers");    // Get JSONArray maneuvers from first (and only) object inside JSONArray legs
+
+                totalMeneuvers = maneuvers.length();
+                Log.i(TAG, "MANEUVERS LENGTH: " + totalMeneuvers);
+
+            }catch (JSONException e){
+                // TODO Handle problems.
+                Log.e(TAG, Log.getStackTraceString(e));
             }
         }
     }
