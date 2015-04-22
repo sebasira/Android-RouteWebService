@@ -18,6 +18,7 @@ import com.mapquest.android.maps.DefaultItemizedOverlay;
 import com.mapquest.android.maps.GeoPoint;
 import com.mapquest.android.maps.LineOverlay;
 import com.mapquest.android.maps.MapView;
+import com.mapquest.android.maps.Overlay;
 import com.mapquest.android.maps.OverlayItem;
 import com.mapquest.android.maps.RouteResponse;
 
@@ -40,8 +41,6 @@ import java.net.URLConnection;
 public class MapFragment extends Fragment {
     // TAG
     private static final String TAG = "MapFragment";
-    // Marker Icon
-    Drawable icon;
 
     // Mapquest Map View
     private MapView map;
@@ -67,6 +66,9 @@ public class MapFragment extends Fragment {
     private Button btn_prev;
     private Button btn_next;
 
+    // Maneuvers Overlay
+    private DefaultItemizedOverlay maneuverOverlay;
+
 /************************************************************************************/
 /** LIFE CYLCE **/
 
@@ -90,13 +92,14 @@ public class MapFragment extends Fragment {
 
         // Setup the map
         map = (MapView) rootView.findViewById(R.id.map);
-        map.getController().setZoom(16);
+        map.getController().setZoom(17);
         map.getController().setCenter(defaultCenterPoint);
         map.setBuiltInZoomControls(true);
 
         // Adding default Markers Overlays
-        icon = getResources().getDrawable(R.drawable.location_marker);
+        Drawable icon = getResources().getDrawable(R.drawable.dot_marker);
         DefaultItemizedOverlay marker_overlay = new DefaultItemizedOverlay(icon);
+        marker_overlay.setAlignment(icon, Overlay.CENTER);
 
         OverlayItem beginMarker = new OverlayItem(defaultStartPoint,"Start Here","The trip will start here");
         marker_overlay.addItem(beginMarker);
@@ -126,6 +129,11 @@ public class MapFragment extends Fragment {
                 displayManeuver(displayingManeuverIndex + 1);               // Display de next maneuver
             }
         });
+
+        // Setup Maneuvers Marker Overlay (so we can show marker where the maneuver need to be done)
+        Drawable iconFlag = getResources().getDrawable(R.drawable.flag_marker_pink);
+        maneuverOverlay = new DefaultItemizedOverlay(iconFlag);
+        marker_overlay.setAlignment(iconFlag, Overlay.RIGHT | Overlay.BOTTOM);
 
         // Request the route (Direction API) from mapquest
         String directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
@@ -210,6 +218,32 @@ public class MapFragment extends Fragment {
             }else{
                 btn_next.setEnabled(true);
                 btn_prev.setEnabled(true);
+            }
+
+            // Maneuver Marker Overlay
+            String lat = "";
+            String lng = "";
+            try{
+                JSONObject startPoint =  maneuvers.getJSONObject(idx).getJSONObject("startPoint");
+                lat = startPoint.optString("lat");
+                lng = startPoint.optString("lng");
+            }catch (JSONException e){
+                // TODO Handle problems.
+                Log.e(TAG, Log.getStackTraceString(e));
+            }
+
+            if (null != maneuverOverlay) {
+                map.getOverlays().remove(maneuverOverlay);
+
+                if ((!lat.equals("")) && (!lng.equals(""))){
+                    GeoPoint geoP = new GeoPoint(Double.parseDouble(lat), Double.parseDouble(lng));
+                    OverlayItem maneuverMarker = new OverlayItem(geoP, "", "");
+                    maneuverOverlay.addItem(maneuverMarker);
+
+                    map.getOverlays().add(maneuverOverlay);
+
+                    map.postInvalidate();                   // Re-Draw the map
+                }
             }
         }
     }
@@ -341,8 +375,8 @@ public class MapFragment extends Fragment {
         }
 
 
-        // GET MANEUVERS FORM ROUTE RESPONSE
-
+        /* GET MANEUVERS FORM ROUTE RESPONSE */
+        /* ********************************* */
         /** If you look at the response you'll see something like this:
          *  "route":{
          *      ... other values..
