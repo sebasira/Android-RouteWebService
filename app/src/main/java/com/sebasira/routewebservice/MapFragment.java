@@ -36,6 +36,8 @@ import java.net.URLConnection;
  * MapFragment
  */
 public class MapFragment extends Fragment {
+    // TAG
+    private static final String TAG = "MapFragment";
     // Marker Icon
     Drawable icon;
 
@@ -47,6 +49,11 @@ public class MapFragment extends Fragment {
 
     // Mapquest Directions Api StatusCode
     private static final String MAPQUEST_STATUS_CODE_OK = "0";
+
+    // Default locations
+    private GeoPoint defaultCenterPoint =  new GeoPoint(-32.9476917,-60.6304694);
+    private GeoPoint defaultStartPoint =  new GeoPoint(-32.947444,-60.630304);
+    private GeoPoint defaultEndPoint =  new GeoPoint(-32.945859,-60.632354);
 
 /************************************************************************************/
 /** LIFE CYLCE **/
@@ -72,24 +79,32 @@ public class MapFragment extends Fragment {
         // Setup the map
         map = (MapView) rootView.findViewById(R.id.map);
         map.getController().setZoom(16);
-        map.getController().setCenter(new GeoPoint(-32.9476917,-60.6304694));
+        map.getController().setCenter(defaultCenterPoint);
         map.setBuiltInZoomControls(true);
 
         // Adding default Markers Overlays
         icon = getResources().getDrawable(R.drawable.location_marker);
         DefaultItemizedOverlay marker_overlay = new DefaultItemizedOverlay(icon);
 
-        OverlayItem beginMarker = new OverlayItem(new GeoPoint(-32.947444,-60.630304),"Start Here","The trip will start here");
+        OverlayItem beginMarker = new OverlayItem(defaultStartPoint,"Start Here","The trip will start here");
         marker_overlay.addItem(beginMarker);
 
-        OverlayItem endMarker = new OverlayItem(new GeoPoint(-32.947048,-60.631699),"Stop Here","The trip will end here");
+        OverlayItem endMarker = new OverlayItem(defaultEndPoint,"Stop Here","The trip will end here");
         marker_overlay.addItem(endMarker);
 
         map.getOverlays().add(marker_overlay);
 
         map.invalidate();                           // Re-Draw the map
 
-        new GetRouteTask(getActivity()).execute("http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY + "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0&locale=en_US&unit=m&from=-32.947444,-60.630304&to=-32.947048,-60.631699&drivingStyle=2&highwayEfficiency=21.0");
+
+        // Request the route (Direction API) from mapquest
+        String directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
+                "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0&locale=en_US&unit=m" +
+                "&from=" + defaultStartPoint.getLatitudeE6()/1E6 + "," + defaultStartPoint.getLongitudeE6()/1E6 +
+                "&to=" + defaultEndPoint.getLatitudeE6()/1E6 + "," + defaultEndPoint.getLongitudeE6()/1E6 +
+                "&drivingStyle=2&highwayEfficiency=21.0";
+        Log.d(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
+        new GetRouteTask(getActivity()).execute(directions_api_request_url);
 
         return rootView;
     }
