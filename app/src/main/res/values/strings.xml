@@ -12,5 +12,13 @@
 
     <string name="no_maneuver_narrative">No maneuver narrative</string>
 
+    <string name="tts_fail">Failed to initialize the TextToSpeech</string>
+
+    <string name="tts_cant_speak">Can not speak! TTS was not initialized</string>
+
+
+
+
+
 
 </resources>

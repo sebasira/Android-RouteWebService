@@ -5,7 +5,9 @@ import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,11 +36,13 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Locale;
 
 /**
  * MapFragment
  */
-public class MapFragment extends Fragment {
+public class MapFragment extends Fragment implements TextToSpeech.OnInitListener {
     // TAG
     private static final String TAG = "MapFragment";
 
@@ -69,6 +73,9 @@ public class MapFragment extends Fragment {
     // Maneuvers Overlay
     private DefaultItemizedOverlay maneuverOverlay;
 
+    // Text-to-Speech
+    private TextToSpeech tts;
+
 /************************************************************************************/
 /** LIFE CYLCE **/
 
@@ -77,6 +84,29 @@ public class MapFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        tts = new TextToSpeech(getActivity().getApplicationContext(), this);                     // Initialize the TextToSpeech
+    }
+
+    /* ON INIT */
+	/* ******* */
+    /** Include onInit method which signals the completion of the TextToSpeech engine initialization.
+     *  Your device will take some small fraction of time to initialize TTS engine, so we are
+     *  calling onInit method to make sure that whether it is initialized properly or not.
+     *
+     * @param status TextToSpeech.SUCCESS or TextToSpeech.ERROR
+     */
+    @Override
+    public void onInit(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts.setLanguage(Locale.ENGLISH);
+
+        } else {
+            tts = null;
+            String msg = getResources().getString(R.string.tts_fail);
+            Log.e(TAG, msg);
+            Toast.makeText(getActivity().getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+        }
     }
 
 
@@ -167,13 +197,19 @@ public class MapFragment extends Fragment {
 	/* ********** */
     @Override
     public void onDestroy() {
-        super.onDestroy();
-
         // Possible solution to some leaks
         // http://developer.mapquest.com/web/products/forums/-/message_boards/view_message/744551
         if (null != map){
             map.destroy();
         }
+
+        // Shutdown TTS before destroying the APP
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+        }
+
+        super.onDestroy();
     }
 
 
@@ -182,9 +218,8 @@ public class MapFragment extends Fragment {
 
     /* DISPLAY MANEUVER */
     /* **************** */
-
     /** This method display the maneuver #idx from the JSONArray of maneuvers.
-     * Ir also modiffy the UI accordingly (enable/disable prev/next buttons)
+     * It also modiffy the UI accordingly (enable/disable prev/next buttons)
      *
      * @param idx index of the maneuver to display
      */
@@ -245,6 +280,34 @@ public class MapFragment extends Fragment {
                     map.postInvalidate();                   // Re-Draw the map
                 }
             }
+
+            // Maneuver Speech (TTS)
+            speakOut(maneuver_narrative);
+        }
+    }
+
+
+    /* SPEAK OUT */
+    /* ********* */
+    /** Speaks out the text passed as argument
+     *
+     * @param textToSpeak text to speak out
+     */
+    private void speakOut (String textToSpeak){
+        // Only speak if the TTS was succesfully initialized
+        if (null != tts) {
+            tts.setSpeechRate((float) 0.85);                    // Set speech rate a bit slower than normal
+            tts.setLanguage(Locale.getDefault());               // Set deafualt Locale as Speech Languaje
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);   // Don't need and utteranceID to track
+            } else {
+                tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null);
+            }
+        }else{
+            String msg = getResources().getString(R.string.tts_cant_speak);
+            Log.e(TAG, msg);
+            Toast.makeText(getActivity().getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
         }
     }
 
