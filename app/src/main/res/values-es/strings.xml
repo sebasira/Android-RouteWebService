@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">RouteWebService</string>
+    <string name="action_settings">Ajustes</string>
+
+    <string name="waiting_route">Calculando ruta...</string>
+
+    <string name="error_route_status_code">No se pudo crear la ruta!. Código: </string>
+    <string name="error_route_message">Mensaje: </string>
+
+    <string name="prev">ANT.</string>
+    <string name="next">SIG.</string>
+
+    <string name="no_maneuver_narrative">No hay narrativa para la maniobra</string>
+
+    <string name="tts_fail">Fallo al inicializar el Texto-A-Voz</string>
+
+    <string name="tts_cant_speak">No se puedo hablar! Texto-A-Voz no fue inicializado correctamente</string>
+
+</resources>
