@@ -14,6 +14,7 @@
     <string name="no_maneuver_narrative">No hay narrativa para la maniobra</string>
 
     <string name="tts_fail">Fallo al inicializar el Texto-A-Voz</string>
+    <string name="tts_init_done">Texto-A-Voz inicializado correctamente</string>
 
     <string name="tts_cant_speak">No se puedo hablar! Texto-A-Voz no fue inicializado correctamente</string>
 
