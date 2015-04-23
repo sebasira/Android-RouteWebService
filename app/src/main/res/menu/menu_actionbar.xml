@@ -1,0 +1,11 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
+
+    <item
+        android:id="@+id/menu_createRoute"
+        android:title="@string/action_createRoute"
+        android:orderInCategory="100"
+        android:icon="@drawable/ic_action_travel_plan_512"
+        app:showAsAction="always" />
+</menu>

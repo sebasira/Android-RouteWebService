@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">RouteWebService</string>
-    <string name="action_settings">Settings</string>
+
+    <string name="action_createRoute">Create Route</string>
 
     <string name="waiting_route">Waiting for the route...</string>
 

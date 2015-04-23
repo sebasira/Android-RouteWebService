@@ -3,6 +3,7 @@ package com.sebasira.routewebservice;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -10,6 +11,9 @@ import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -76,6 +80,9 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     // Text-to-Speech
     private TextToSpeech tts;
 
+    // Directions API URL query
+    private String directions_api_request_url;
+
 /************************************************************************************/
 /** LIFE CYLCE **/
 
@@ -84,6 +91,8 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        setHasOptionsMenu(true);                // Tells Action Bar that this fragment has its own actions
 
         tts = new TextToSpeech(getActivity().getApplicationContext(), this);                     // Initialize the TextToSpeech
     }
@@ -166,7 +175,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         marker_overlay.setAlignment(iconFlag, Overlay.RIGHT | Overlay.BOTTOM);
 
         // Request the route (Direction API) from mapquest
-        String directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
+        directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
                 "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
                 "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
                 "&unit=m" +
@@ -174,7 +183,6 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 "&to=" + defaultEndPoint.getLatitudeE6()/1E6 + "," + defaultEndPoint.getLongitudeE6()/1E6 +
                 "&drivingStyle=2&highwayEfficiency=21.0";
         Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
-        new GetRouteTask(getActivity()).execute(directions_api_request_url);
 
         return rootView;
     }
@@ -214,6 +222,29 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         super.onDestroy();
     }
 
+
+/************************************************************************************/
+/** ACTION MENU **/
+
+    /* ON CREATE OPTIONS MENU */
+    /* ********************** */
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_actionbar, menu);
+    }
+
+    /* ON OPTIONS ITEM SELECTED */
+    /* ************************ */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_createRoute:
+                new GetRouteTask(getActivity()).execute(directions_api_request_url);
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
 /************************************************************************************/
 /** PRIVATE ROUTINES **/
