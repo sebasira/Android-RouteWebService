@@ -246,7 +246,6 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         }
     }
 
-    
 /************************************************************************************/
 /** PRIVATE ROUTINES **/
 
