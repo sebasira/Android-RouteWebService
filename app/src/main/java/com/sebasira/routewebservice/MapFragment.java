@@ -296,7 +296,6 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     private void speakOut (String textToSpeak){
         // Only speak if the TTS was succesfully initialized
         if (null != tts) {
-            HashMap<String, String> uniqueHash = new HashMap();
             tts.setSpeechRate((float) 0.85);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
