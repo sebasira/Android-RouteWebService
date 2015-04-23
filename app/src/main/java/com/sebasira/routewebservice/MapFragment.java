@@ -296,7 +296,8 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     private void speakOut (String textToSpeak){
         // Only speak if the TTS was succesfully initialized
         if (null != tts) {
-            tts.setSpeechRate((float) 0.85);
+            tts.setSpeechRate((float) 0.85);                    // Set speech rate a bit slower than normal
+            tts.setLanguage(Locale.getDefault());               // Set deafualt Locale as Speech Languaje
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 tts.speak(textToSpeak, TextToSpeech.QUEUE_FLUSH, null, null);   // Don't need and utteranceID to track
