@@ -94,7 +94,8 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
         setHasOptionsMenu(true);                // Tells Action Bar that this fragment has its own actions
 
-        tts = new TextToSpeech(getActivity().getApplicationContext(), this);                     // Initialize the TextToSpeech
+        // Initialize the TextToSpeech
+        tts = new TextToSpeech(getActivity().getApplicationContext(), this);
     }
 
     /* ON INIT */
@@ -106,16 +107,27 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
      * @param status TextToSpeech.SUCCESS or TextToSpeech.ERROR
      */
     @Override
-    public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts.setLanguage(Locale.ENGLISH);
+    public void onInit(final int status) {
+        // TTS initialization seems to overload the UI Thread. Therefore, it's better to do it
+        // on a separate thread.
+        // source: http://stackoverflow.com/a/24398365
+        new Thread(new Runnable() {
+            public void run() {
+                String msg;
 
-        } else {
-            tts = null;
-            String msg = getResources().getString(R.string.tts_fail);
-            Log.e(TAG, msg);
-            Toast.makeText(getActivity().getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-        }
+                if (status == TextToSpeech.SUCCESS) {
+                    tts.setLanguage(Locale.ENGLISH);
+                    msg = getResources().getString(R.string.tts_init_done);
+                    Log.e(TAG, msg);
+
+                } else {
+                    tts = null;
+                    msg = getResources().getString(R.string.tts_fail);
+                    Log.e(TAG, msg);
+                    Toast.makeText(getActivity().getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }).start();
     }
 
 
@@ -358,19 +370,19 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
      * http://developer.mapquest.com/widget/web/products/forums/-/message_boards/message/1381991
      */
     private class GetRouteTask extends AsyncTask<String, Void, JSONObject> {
-        private ProgressDialog progrress_dialog;
+        private ProgressDialog progress_dialog;
 
         // CONSTRUCTOR
         public GetRouteTask(Activity activity) {
             // Create the progress dialog
-            progrress_dialog = new ProgressDialog(activity);
+            progress_dialog = new ProgressDialog(activity);
         }
 
         // ON PRE EXECUTE
         protected void onPreExecute() {
             // Show the progress dialog
-            progrress_dialog.setMessage(getResources().getString(R.string.waiting_route));
-            progrress_dialog.show();
+            progress_dialog.setMessage(getResources().getString(R.string.waiting_route));
+            progress_dialog.show();
         }
 
         // DO IN BACKGROUND
@@ -424,8 +436,8 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // POST EXECUTE
         protected void onPostExecute(JSONObject jsonResponse) {
             // Dismiss the progress dialog
-            if (progrress_dialog.isShowing()) {
-                progrress_dialog.dismiss();
+            if (progress_dialog.isShowing()) {
+                progress_dialog.dismiss();
             }
 
             // Beofore processing the response, let's check it has no errors. If no error is
