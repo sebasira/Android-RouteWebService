@@ -167,7 +167,9 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
         // Request the route (Direction API) from mapquest
         String directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
-                "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0&locale=en_US&unit=m" +
+                "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
+                "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
+                "&unit=m" +
                 "&from=" + defaultStartPoint.getLatitudeE6()/1E6 + "," + defaultStartPoint.getLongitudeE6()/1E6 +
                 "&to=" + defaultEndPoint.getLatitudeE6()/1E6 + "," + defaultEndPoint.getLongitudeE6()/1E6 +
                 "&drivingStyle=2&highwayEfficiency=21.0";
