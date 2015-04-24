@@ -24,3 +24,6 @@ On the different releases you'll find different functionallities as this app evo
 - Change route type (walk, drive, bike)
 - Add Markers by touching
 - Add waypoints to the route
+ 
+
+Some part's of the code (even some ideas) where taken from different places and a mention to the user who point it out and the place where it was taken from are mentioned, to give credit to them.
