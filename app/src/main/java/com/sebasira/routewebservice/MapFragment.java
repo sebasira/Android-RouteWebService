@@ -92,6 +92,9 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     // ImageView that would act as marker been dragged
     private ImageView dragImage = null;
 
+    // Route Manager
+    Duncan_RouteManager duncanRouteManager;
+
 /************************************************************************************/
 /** LIFE CYLCE **/
 
@@ -252,6 +255,10 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.menu_createRoute:
+                if (null != duncanRouteManager) {
+                    duncanRouteManager.clearRoute();                    // Clear previous route (if any)
+                }
+
                 // Request the route (Direction API) from mapquest
                 directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
                         "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
@@ -467,7 +474,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 RouteResponse response = new RouteResponse(jsonResponse);
 
                 // Create a RouteManager as John Duncan suggested using your API KEY
-                Duncan_RouteManager duncanRouteManager = new Duncan_RouteManager(getActivity().getApplicationContext(), MAPQUEST_API_KEY);
+                duncanRouteManager = new Duncan_RouteManager(getActivity().getApplicationContext(), MAPQUEST_API_KEY);
 
                 // Get the route from the response
                 LineOverlay routeLine = duncanRouteManager.getRouteOverlay(response);
