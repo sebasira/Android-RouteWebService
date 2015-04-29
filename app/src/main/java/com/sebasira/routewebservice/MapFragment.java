@@ -3,7 +3,8 @@ package com.sebasira.routewebservice;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
-import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -14,14 +15,18 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mapquest.android.maps.DefaultItemizedOverlay;
 import com.mapquest.android.maps.GeoPoint;
+import com.mapquest.android.maps.ItemizedOverlay;
 import com.mapquest.android.maps.LineOverlay;
 import com.mapquest.android.maps.MapView;
 import com.mapquest.android.maps.Overlay;
@@ -33,14 +38,14 @@ import org.apache.http.client.ClientProtocolException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -63,6 +68,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     private GeoPoint defaultCenterPoint =  new GeoPoint(-32.9476917,-60.6304694);
     private GeoPoint defaultStartPoint =  new GeoPoint(-32.947444,-60.630304);
     private GeoPoint defaultEndPoint =  new GeoPoint(-32.945859,-60.632354);
+    private GeoPoint destinationPoint;
 
     // Maneuvers
     private JSONArray maneuvers;
@@ -82,6 +88,9 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
     // Directions API URL query
     private String directions_api_request_url;
+
+    // ImageView that would act as marker been dragged
+    private ImageView dragImage = null;
 
 /************************************************************************************/
 /** LIFE CYLCE **/
@@ -150,15 +159,16 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // Adding default Markers Overlays
         Drawable icon = getResources().getDrawable(R.drawable.dot_marker);
         DefaultItemizedOverlay marker_overlay = new DefaultItemizedOverlay(icon);
-        marker_overlay.setAlignment(icon, Overlay.CENTER);
+        DefaultItemizedOverlay.setAlignment(icon, Overlay.CENTER);
 
         OverlayItem beginMarker = new OverlayItem(defaultStartPoint,"Start Here","The trip will start here");
         marker_overlay.addItem(beginMarker);
-
-        OverlayItem endMarker = new OverlayItem(defaultEndPoint,"Stop Here","The trip will end here");
-        marker_overlay.addItem(endMarker);
-
         map.getOverlays().add(marker_overlay);
+
+        // Adding draggable marker overlay
+        destinationPoint = defaultEndPoint;         // Destination is by default, the default endPoint
+        dragImage = (ImageView) rootView.findViewById(R.id.dragImg);
+        map.getOverlays().add(new DraggableOverlay(icon));
 
         map.invalidate();                           // Re-Draw the map
 
@@ -184,17 +194,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // Setup Maneuvers Marker Overlay (so we can show marker where the maneuver need to be done)
         Drawable iconFlag = getResources().getDrawable(R.drawable.flag_marker_pink);
         maneuverOverlay = new DefaultItemizedOverlay(iconFlag);
-        marker_overlay.setAlignment(iconFlag, Overlay.RIGHT | Overlay.BOTTOM);
-
-        // Request the route (Direction API) from mapquest
-        directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
-                "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
-                "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
-                "&unit=m" +
-                "&from=" + defaultStartPoint.getLatitudeE6()/1E6 + "," + defaultStartPoint.getLongitudeE6()/1E6 +
-                "&to=" + defaultEndPoint.getLatitudeE6()/1E6 + "," + defaultEndPoint.getLongitudeE6()/1E6 +
-                "&drivingStyle=2&highwayEfficiency=21.0";
-        Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
+        DefaultItemizedOverlay.setAlignment(iconFlag, Overlay.RIGHT | Overlay.BOTTOM);
 
         return rootView;
     }
@@ -252,6 +252,15 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.menu_createRoute:
+                // Request the route (Direction API) from mapquest
+                directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
+                        "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
+                        "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
+                        "&unit=m" +
+                        "&from=" + defaultStartPoint.getLatitudeE6()/1E6 + "," + defaultStartPoint.getLongitudeE6()/1E6 +
+                        "&to=" + destinationPoint.getLatitudeE6()/1E6 + "," + destinationPoint.getLongitudeE6()/1E6 +
+                        "&drivingStyle=2&highwayEfficiency=21.0";
+                Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
                 new GetRouteTask(getActivity()).execute(directions_api_request_url);
             default:
                 return super.onOptionsItemSelected(item);
@@ -520,6 +529,195 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 // TODO Handle problems.
                 Log.e(TAG, Log.getStackTraceString(e));
             }
+        }
+    }
+
+
+/************************************************************************************/
+/** DRAGGABLE OVERLAY **/
+
+    public class DraggableOverlay extends ItemizedOverlay<OverlayItem> {
+        private List<OverlayItem> items = new ArrayList<OverlayItem>();
+        private Drawable marker = null;
+        private OverlayItem inDrag = null;
+
+        /** DragImageOffset are the values halfWidth and fullHeight used to position the image.
+         * When positioning an image (setting margins) the easiest way is to set a LEFT and TOP margin.
+         * But the coordinates we are going to use to position it are relatives to BOTTOM and CENTER,
+         * because the marker is boundCenterBottom.
+         * So we need to adjust this margin in order to correctly position the ImageView where the
+         * marker was. Therefore there's an offset on the image's margins. Those offsets are:
+         *      - for Left Margin: half width to the left (to be in the middle) so this value should be subtracted
+         *      - for Top Margin: full height to the top (to be in the bottom) so this value should be subtracted
+         */
+        private int xDragImageOffset = 0;
+        private int yDragImageOffset = 0;
+
+        private int xDragTouchOffset = 0;
+        private int yDragTouchOffset = 0;
+
+        /* CONSTRUCTOR */
+        /* *********** */
+        public DraggableOverlay(Drawable marker) {
+            super(marker);
+            this.marker = marker;
+
+
+            xDragImageOffset = dragImage.getDrawable().getIntrinsicWidth()/2;
+            yDragImageOffset = dragImage.getDrawable().getIntrinsicHeight();
+
+
+            items.add(new OverlayItem(destinationPoint,"Title", "Snippet"));
+
+            // Populates ItemizedOverlay's internal list. Subclass must provide number of items that
+            // must be populate by implementing size(). Each item in the list populated by calling createItem(int).
+            populate();
+        }
+
+
+        /* CREATE ITEM */
+        /* *********** */
+        /** Required method when extending ItemizedOverlay. Returns the item at the given index.
+         *
+         * @param i index
+         * @return item at given index
+         */
+        @Override
+        protected OverlayItem createItem(int i) {
+            return(items.get(i));
+        }
+
+
+        /* DRAW */
+        /* **** */
+        /** Required method when extending ItemizedOverlay. If not present, markers won't be
+         * drawn int the map
+         */
+        @Override
+        public void draw(Canvas canvas, MapView mapView, boolean shadow) {
+            super.draw(canvas, mapView, shadow);
+
+            boundCenterBottom(marker);
+        }
+
+
+        /* SIZE */
+        /* **** */
+        /** Required method when extending ItemizedOverlay. Returns the number of items in the overlay.
+         *
+         * @return number of items in the overlay
+         */
+        @Override
+        public int size() {
+            return(items.size());
+        }
+
+
+        /* ON TOUCH EVENT */
+        /* ************** */
+        /** Handles the touch events for this overlay. This is how we're gone make it draggable
+         *
+         * @param event type of touch event (MotionEvent) DOWN, MOVE, UP, etc
+         * @param mapView mapview where the event ocurr
+         * @return TRUE to stop propagation of the event or FALSE to pass the event handler
+         */
+        @Override
+        public boolean onTouchEvent(MotionEvent event, MapView mapView) {
+            final int action  = event.getAction();      // Type of Action
+            final int x = (int)event.getX();            // X coordinate where the event happened
+            final int y = (int)event.getY();            // Y coordinate where the event happened
+
+            // DOWN
+            if (action == MotionEvent.ACTION_DOWN) {
+                // Sweep all items on the overlay list to test if touch event happened over one
+                // of them
+                for (OverlayItem item : items) {
+                    Point p = new Point();                              // Creates an Android screen point
+                    map.getProjection().toPixels(item.getPoint(), p);   // Set point coordinates to be item's coordinates on screen
+
+                    // Check if event (DOWN) happened over an item (marker)
+                    if (hitTest(item, marker, x - p.x, y - p.y)) {
+                        inDrag = item;                                  // Item being dragged
+                        items.remove(inDrag);                           // Remove this dragged item from item list
+                        populate();                                     // Update ItemizedOverlay internal list
+                        map.postInvalidate();                           // Re-draw the map
+
+                        // As the Touch Event may have happened around the point but not exactly
+                        // on it we need to consider this little offset.
+                        // Depending on your needs the may not be necessary
+                        // This offset is an initial value that won't be changed
+                        xDragTouchOffset = x - p.x;
+                        yDragTouchOffset = y - p.y;
+
+                        // Now the marker was removed from the list, so it won't exist and won't be shown.
+                        // So what we do is to show an ImageView with the same picture as the location
+                        // marker, starting from the exact same place,  to make user believe he
+                        // is dragging that marker. But that's only an illusion
+                        setDragImagePosition(x, y);                     // Set ImageView in the same place the marker was
+                        dragImage.setVisibility(View.VISIBLE);          // Show this ImageView
+
+                        break;                                          // Exit FOR, don't keep sweeping
+                    }
+
+                    // If dragging and item, the stop progation of tocuh event => return true
+                    if (inDrag != null) {
+                        return true;
+                    }
+                }
+
+                // MOVE
+            }else if (action == MotionEvent.ACTION_MOVE) {
+                // Only move the ImageView if an item is being dragged
+                if (inDrag != null) {
+                    // Change position of imageView accordly to movement
+                    setDragImagePosition(x, y);
+
+                    // If dragging and item, the stop progation of tocuh event => return true
+                    return true;
+                }
+
+                // UP
+            }else if (action == MotionEvent.ACTION_UP) {
+                // Only process UP event if an item is being dragged
+                if (inDrag != null) {
+                    dragImage.setVisibility(View.GONE);     // Hide the ImageView
+
+                    // Now we change the destination to be a GeoPoint from where the UP occurs,
+                    // create an OverlayItem from it and add it to the item list so it will be
+                    // drawn on the map
+                    destinationPoint = map.getProjection().fromPixels(x - xDragTouchOffset,y - yDragTouchOffset);
+                    OverlayItem toDrop = new OverlayItem(destinationPoint, inDrag.getTitle(),inDrag.getSnippet());
+                    items.add(toDrop);
+                    populate();
+                    map.postInvalidate();                   // Re-draw the map
+
+                    inDrag = null;                          // There's not an item been dragged anymore
+
+                    // Stop progation of tocuh event => return true
+                    return true;
+                }
+            }
+
+            // Return false to pass the handler of the Event
+            return false;
+        }
+
+        /* SET DRAG IMAGE POSITION */
+        /* *********************** */
+        /** Sets the ImageView position on screen. This ImageView is the one that creates the illusion
+         * of dragging the marker.
+         *
+         * @param x X coordinate on screen
+         * @param y Y coordinate on screen
+         */
+        private void setDragImagePosition(int x, int y) {
+            RelativeLayout.LayoutParams lp= (RelativeLayout.LayoutParams) dragImage.getLayoutParams();
+
+            // To positioning a View (an ImageView ins this case) on the screen we need to set its margins.
+            // We are going to set LEFT and TOP margins, and to correctly positioning the image
+            // some offsets need to be taken in account.
+            lp.setMargins(x - xDragImageOffset - xDragTouchOffset, y - yDragImageOffset - yDragTouchOffset, 0, 0);
+            dragImage.setLayoutParams(lp);
         }
     }
 

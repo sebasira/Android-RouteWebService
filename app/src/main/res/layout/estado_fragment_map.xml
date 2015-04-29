@@ -17,6 +17,15 @@
 	    	android:apiKey=""
 	    	-->
 
+    <!-- DRAG IMAGE (aka draggable marker) -->
+    <ImageView android:id="@+id/dragImg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/dot_marker"
+        android:visibility="gone"
+    />
+
+    <!-- MANUEVERS -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
