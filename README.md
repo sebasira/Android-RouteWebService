@@ -17,7 +17,7 @@ On the different releases you'll find different functionallities as this app evo
 - Add drag marker capability [pull-request #1](https://github.com/sebasira/Android-RouteWebService/pull/1)
 - Change Route destination (drag marker) [pull-request #1](https://github.com/sebasira/Android-RouteWebService/pull/1)
 - Use MyLocation as Origin for the route [pull-request #2](https://github.com/sebasira/Android-RouteWebService/pull/2)
-- Added maneuver icon to the maneuver detail [pull-request #3](https://github.com/sebasira/Android-RouteWebService/pull/3)
+- Added maneuver icon to the maneuver detail
  
 ### What would be done:
 - Real-Time Navigation as we move
