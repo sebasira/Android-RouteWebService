@@ -1,14 +1,19 @@
 package com.sebasira.routewebservice;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -29,6 +34,7 @@ import com.mapquest.android.maps.GeoPoint;
 import com.mapquest.android.maps.ItemizedOverlay;
 import com.mapquest.android.maps.LineOverlay;
 import com.mapquest.android.maps.MapView;
+import com.mapquest.android.maps.MyLocationOverlay;
 import com.mapquest.android.maps.Overlay;
 import com.mapquest.android.maps.OverlayItem;
 import com.mapquest.android.maps.RouteResponse;
@@ -93,7 +99,10 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     private ImageView dragImage = null;
 
     // Route Manager
-    Duncan_RouteManager duncanRouteManager;
+    private Duncan_RouteManager duncanRouteManager;
+
+    // MyLocationOverlay: An Overlya to display My Location
+    private MyLocationOverlay myLocationOverlay;
 
 /************************************************************************************/
 /** LIFE CYLCE **/
@@ -130,7 +139,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 if (status == TextToSpeech.SUCCESS) {
                     tts.setLanguage(Locale.ENGLISH);
                     msg = getResources().getString(R.string.tts_init_done);
-                    Log.e(TAG, msg);
+                    Log.i(TAG, msg);
 
                 } else {
                     tts = null;
@@ -155,20 +164,15 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
         // Setup the map
         map = (MapView) rootView.findViewById(R.id.map);
-        map.getController().setZoom(17);
+        map.getController().setZoom(12);
         map.getController().setCenter(defaultCenterPoint);
         map.setBuiltInZoomControls(true);
 
-        // Adding default Markers Overlays
-        Drawable icon = getResources().getDrawable(R.drawable.dot_marker);
-        DefaultItemizedOverlay marker_overlay = new DefaultItemizedOverlay(icon);
-        DefaultItemizedOverlay.setAlignment(icon, Overlay.CENTER);
-
-        OverlayItem beginMarker = new OverlayItem(defaultStartPoint,"Start Here","The trip will start here");
-        marker_overlay.addItem(beginMarker);
-        map.getOverlays().add(marker_overlay);
+        // Adding myLocationOverlay
+        setupMyLocation();
 
         // Adding draggable marker overlay
+        Drawable icon = getResources().getDrawable(R.drawable.dot_marker);
         destinationPoint = defaultEndPoint;         // Destination is by default, the default endPoint
         dragImage = (ImageView) rootView.findViewById(R.id.dragImg);
         map.getOverlays().add(new DraggableOverlay(icon));
@@ -264,7 +268,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                         "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
                         "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
                         "&unit=m" +
-                        "&from=" + defaultStartPoint.getLatitudeE6()/1E6 + "," + defaultStartPoint.getLongitudeE6()/1E6 +
+                        "&from=" + myLocationOverlay.getMyLocation().getLatitudeE6()/1E6 + "," + myLocationOverlay.getMyLocation().getLongitudeE6()/1E6 +
                         "&to=" + destinationPoint.getLatitudeE6()/1E6 + "," + destinationPoint.getLongitudeE6()/1E6 +
                         "&drivingStyle=2&highwayEfficiency=21.0";
                 Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
@@ -295,7 +299,6 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 // TODO Handle problems.
                 Log.e(TAG, Log.getStackTraceString(e));
             }
-            tv_maneuver.setText(maneuver_narrative);    // Set maneuver text
             displayingManeuverIndex = idx;              // Displaying maneuver index 0
 
             // Next/Prev Buttons Enable Control
@@ -310,6 +313,9 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
             }else if (idx == totalMeneuvers - 1){
                 btn_prev.setEnabled(true);
                 btn_next.setEnabled(false);             // Index = (total - 1) -> No next
+
+                // As it is the last maneuver, ALWAYS say: "Arrive at your destination"
+                maneuver_narrative = getResources().getString(R.string.arrive_destination);
 
             }else{
                 btn_next.setEnabled(true);
@@ -342,6 +348,9 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 }
             }
 
+            // Maneuver Text
+            tv_maneuver.setText(maneuver_narrative);        // Set maneuver text
+
             // Maneuver Speech (TTS)
             speakOut(maneuver_narrative);
         }
@@ -370,6 +379,64 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
             Log.e(TAG, msg);
             Toast.makeText(getActivity().getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
         }
+    }
+
+
+    /* SET UP MY LOCATION */
+    /* ****************** */
+    /**
+     * Set up a MyLocationOverlay and execute the runnable once a location has
+     * been fixed
+     */
+    private void setupMyLocation() {
+        // Check if the GPS is enabled
+        if (!((LocationManager) getActivity().getSystemService(getActivity().LOCATION_SERVICE))
+                .isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            // Open dialog to inform the user that the GPS is disabled and ask him to enable it
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle(getResources().getString(R.string.gps_disabled));
+            builder.setMessage(getResources().getString(R.string.improve_location));
+            builder.setCancelable(false);
+            builder.setPositiveButton(R.string.settings,
+                    new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // Open the location settings if it is disabled
+                            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivity(intent);
+                        }
+                    });
+            builder.setNegativeButton(R.string.cancel,
+                    new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // Dismiss the dialog
+                            dialog.cancel();
+                        }
+                    });
+
+            // Display the dialog
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
+
+        // Create the MyLocationOverlay
+        myLocationOverlay = new MyLocationOverlay(getActivity(), map);
+        myLocationOverlay.enableMyLocation();
+        myLocationOverlay.setMarker(
+                getResources().getDrawable(R.drawable.dot_marker), 0);
+        myLocationOverlay.runOnFirstFix(new Runnable() {
+
+            @Override
+            public void run() {
+                GeoPoint currentLocation = myLocationOverlay.getMyLocation();
+                map.getController().animateTo(currentLocation);
+                map.getOverlays().add(myLocationOverlay);
+                myLocationOverlay.setFollowing(false);
+            }
+        });
     }
 
 /************************************************************************************/

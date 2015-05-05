@@ -18,4 +18,11 @@
 
     <string name="tts_cant_speak">No se puedo hablar! Texto-A-Voz no fue inicializado correctamente</string>
 
+    <string name="gps_disabled">GPS deshabilitado!</string>
+    <string name="improve_location">Para una mayor precisión, le sugerimos que lo encienda. Quiere hacerlo?</string>
+    <string name="settings">AJUSTES</string>
+    <string name="cancel">CANCELAR</string>
+
+    <string name="arrive_destination">Ha llegado a su destino!</string>
+
 </resources>

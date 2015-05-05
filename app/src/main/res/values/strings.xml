@@ -18,6 +18,14 @@
 
     <string name="tts_cant_speak">Can not speak! TTS was not initialized</string>
 
+    <string name="gps_disabled">GPS is disabled!</string>
+    <string name="improve_location">For better accuaracy we suggest you to turn it on. Do you want to do it?</string>
+    <string name="settings">CONFIG</string>
+    <string name="cancel">CANCEL</string>
+
+    <string name="arrive_destination">You have arrived at your destination!</string>
+
+
 
 
 
