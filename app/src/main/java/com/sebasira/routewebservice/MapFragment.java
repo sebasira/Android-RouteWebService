@@ -6,8 +6,11 @@ import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
 import android.os.AsyncTask;
@@ -47,6 +50,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -85,6 +89,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     private TextView tv_maneuver;
     private Button btn_prev;
     private Button btn_next;
+    private ImageView img_maneuver;
 
     // Maneuvers Overlay
     private DefaultItemizedOverlay maneuverOverlay;
@@ -182,6 +187,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
         // Maneuvers Display and controls
         tv_maneuver = (TextView) rootView.findViewById(R.id.tv_manouver);
+        img_maneuver = (ImageView) rootView.findViewById(R.id.im_manouver);
 
         btn_prev = (Button) rootView.findViewById(R.id.btn_prev);
         btn_prev.setOnClickListener(new View.OnClickListener() {
@@ -349,8 +355,23 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
                 }
             }
 
-            // Maneuver Text
+            // Maneuver Icon
+            String maneuver_icon = "";
+            try{
+                maneuver_icon = maneuvers.getJSONObject(idx).optString("iconUrl");     // Get the "iconUrl" of the IDX maneuver object
+            }catch (JSONException e){
+                // TODO Handle problems.
+                Log.e(TAG, Log.getStackTraceString(e));
+            }
+
+            // Maneuver Text + Icon
             tv_maneuver.setText(maneuver_narrative);        // Set maneuver text
+
+            Log.e(TAG,"Maneuver Icon URL: " + maneuver_icon);
+            if (!maneuver_icon.equals("")){
+                img_maneuver.setImageDrawable(null);        // Remove Image
+                new DownloadImageTask(img_maneuver).execute(maneuver_icon);
+            }
 
             // Maneuver Speech (TTS)
             speakOut(maneuver_narrative);
@@ -801,6 +822,43 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
             // some offsets need to be taken in account.
             lp.setMargins(x - xDragImageOffset - xDragTouchOffset, y - yDragImageOffset - yDragTouchOffset, 0, 0);
             dragImage.setLayoutParams(lp);
+        }
+    }
+
+/************************************************************************************/
+/** DOWNLOAD IMAGE FROM URL **/
+
+    /** This asynTask will download and image from the given URL and finally set it as the bitmap image
+     * of the ImageView passed when creating the task
+     *
+     * This was taken from here:
+     * http://stackoverflow.com/a/25423372/2597775
+     */
+    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+        ImageView bmImage;
+
+        // CONSTRUCTOR
+        public DownloadImageTask(ImageView bmImage) {
+            this.bmImage = bmImage;
+        }
+
+        // DO IN BACKGROUND
+        protected Bitmap doInBackground(String... urls) {
+            String urldisplay = urls[0];
+            Bitmap mIcon11 = null;
+            try {
+                InputStream in = new java.net.URL(urldisplay).openStream();
+                mIcon11 = BitmapFactory.decodeStream(in);
+            } catch (Exception e) {
+                Log.e("Error", e.getMessage());
+                e.printStackTrace();
+            }
+            return mIcon11;
+        }
+
+        // ON POST-EXECUTE
+        protected void onPostExecute(Bitmap result) {
+            bmImage.setImageBitmap(result);
         }
     }
 
