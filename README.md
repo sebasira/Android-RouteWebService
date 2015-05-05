@@ -16,9 +16,10 @@ On the different releases you'll find different functionallities as this app evo
 - Use TTS service to speak out the maneuvers narrative in the defalut Locale Languaje
 - Add drag marker capability [pull-request #1](https://github.com/sebasira/Android-RouteWebService/pull/1)
 - Change Route destination (drag marker) [pull-request #1](https://github.com/sebasira/Android-RouteWebService/pull/1)
+- Use MyLocation as Origin for the route [pull-request #2](https://github.com/sebasira/Android-RouteWebService/pull/2)
+- Added maneuver icon to the maneuver detail [pull-request #3](https://github.com/sebasira/Android-RouteWebService/pull/3)
  
 ### What would be done:
-- Use MyLocation as Origin for the route
 - Real-Time Navigation as we move
 - Re-Calculate route when drifting from it
 - Change route type (walk, drive, bike)
