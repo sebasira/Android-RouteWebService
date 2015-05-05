@@ -25,4 +25,6 @@
 
     <string name="arrive_destination">Ha llegado a su destino!</string>
 
+    <string name="waiting_my_location">Esperando por mi ubicación...</string>
+
 </resources>

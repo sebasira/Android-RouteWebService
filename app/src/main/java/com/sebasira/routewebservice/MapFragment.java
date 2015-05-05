@@ -103,6 +103,7 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
     // MyLocationOverlay: An Overlya to display My Location
     private MyLocationOverlay myLocationOverlay;
+    private ProgressDialog myLocation_progressDialog;
 
 /************************************************************************************/
 /** LIFE CYLCE **/
@@ -265,11 +266,11 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
                 // Request the route (Direction API) from mapquest
                 directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
-                        "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0"+
+                        "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0" +
                         "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
                         "&unit=m" +
-                        "&from=" + myLocationOverlay.getMyLocation().getLatitudeE6()/1E6 + "," + myLocationOverlay.getMyLocation().getLongitudeE6()/1E6 +
-                        "&to=" + destinationPoint.getLatitudeE6()/1E6 + "," + destinationPoint.getLongitudeE6()/1E6 +
+                        "&from=" + myLocationOverlay.getMyLocation().getLatitudeE6() / 1E6 + "," + myLocationOverlay.getMyLocation().getLongitudeE6() / 1E6 +
+                        "&to=" + destinationPoint.getLatitudeE6() / 1E6 + "," + destinationPoint.getLongitudeE6() / 1E6 +
                         "&drivingStyle=2&highwayEfficiency=21.0";
                 Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
                 new GetRouteTask(getActivity()).execute(directions_api_request_url);
@@ -425,16 +426,24 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // Create the MyLocationOverlay
         myLocationOverlay = new MyLocationOverlay(getActivity(), map);
         myLocationOverlay.enableMyLocation();
-        myLocationOverlay.setMarker(
-                getResources().getDrawable(R.drawable.dot_marker), 0);
+        myLocationOverlay.setMarker(getResources().getDrawable(R.drawable.dot_marker), 0);
+
+        myLocation_progressDialog = new ProgressDialog(getActivity());
+        myLocation_progressDialog.setMessage(getResources().getString(R.string.waiting_my_location));
+        myLocation_progressDialog.show();
+
         myLocationOverlay.runOnFirstFix(new Runnable() {
 
             @Override
             public void run() {
+                if (myLocation_progressDialog.isShowing()) {
+                    myLocation_progressDialog.dismiss();
+                }
+
                 GeoPoint currentLocation = myLocationOverlay.getMyLocation();
                 map.getController().animateTo(currentLocation);
                 map.getOverlays().add(myLocationOverlay);
-                myLocationOverlay.setFollowing(false);
+                myLocationOverlay.setFollowing(false);  // Don't follow myLocation if I move the map
             }
         });
     }
