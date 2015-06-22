@@ -11,7 +11,7 @@ On the different releases you'll find different functionallities as this app evo
 - Draw the route over the map
 - Get default Android Locale and use on the route query
 - Get maneuvers from route response
-- Show and navigate to maneuvers
+- Show and navigate through maneuvers
 - Add a marker on each maneuver startPoint when navigating through maneuvers
 - Use TTS service to speak out the maneuvers narrative in the defalut Locale Languaje
 - Add drag marker capability [pull-request #1](https://github.com/sebasira/Android-RouteWebService/pull/1)
