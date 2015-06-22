@@ -110,6 +110,12 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
     private MyLocationOverlay myLocationOverlay;
     private ProgressDialog myLocation_progressDialog;
 
+    // Route Type Dialog
+    private AlertDialog routeTypeDialog;
+    private String MQ_routeType = "fastest";    // Default route value
+    private final CharSequence[] routeTypes = {" Fastest ", " Shortest "," Pedestrian "," Bicycle "};
+    private final String[] routeTypesValue = {"fastest", "shortest", "pedestrian", "bicycle"};
+
 /************************************************************************************/
 /** LIFE CYLCE **/
 
@@ -266,20 +272,20 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.menu_createRoute:
-                if (null != duncanRouteManager) {
-                    duncanRouteManager.clearRoute();                    // Clear previous route (if any)
-                }
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                builder.setTitle("Select Route Type");
+                builder.setSingleChoiceItems(routeTypes, -1, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int item) {
+                        MQ_routeType = routeTypesValue[item];
+                        routeTypeDialog.dismiss();
+                        requestNewRoute();
+                    }
+                });
 
-                // Request the route (Direction API) from mapquest
-                directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
-                        "&callback=renderAdvancedNarrative&outFormat=json&routeType=fastest&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0" +
-                        "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
-                        "&unit=m" +
-                        "&from=" + myLocationOverlay.getMyLocation().getLatitudeE6() / 1E6 + "," + myLocationOverlay.getMyLocation().getLongitudeE6() / 1E6 +
-                        "&to=" + destinationPoint.getLatitudeE6() / 1E6 + "," + destinationPoint.getLongitudeE6() / 1E6 +
-                        "&drivingStyle=2&highwayEfficiency=21.0";
-                Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
-                new GetRouteTask(getActivity()).execute(directions_api_request_url);
+                routeTypeDialog = builder.create();
+                routeTypeDialog.show();
+
+
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -287,6 +293,30 @@ public class MapFragment extends Fragment implements TextToSpeech.OnInitListener
 
 /************************************************************************************/
 /** PRIVATE ROUTINES **/
+
+    /* REQUEST NEW ROUTE */
+    /* ***************** */
+    /**
+     * Helper routine that sends an HTTP reqest for a new Route
+     */
+    private void requestNewRoute (){
+        if (null != duncanRouteManager) {
+            duncanRouteManager.clearRoute();                    // Clear previous route (if any)
+        }
+
+        // Request the route (Direction API) from MapQuest
+        directions_api_request_url = "http://open.mapquestapi.com/directions/v2/route?key=" + MAPQUEST_API_KEY +
+                "&callback=renderAdvancedNarrative&outFormat=json" +
+                "&routeType="+ MQ_routeType +
+                "&timeType=1&enhancedNarrative=false&shapeFormat=raw&generalize=0" +
+                "&locale=" + Locale.getDefault() +              // Set query with default locale (for narratives)
+                "&unit=m" +
+                "&from=" + myLocationOverlay.getMyLocation().getLatitudeE6() / 1E6 + "," + myLocationOverlay.getMyLocation().getLongitudeE6() / 1E6 +
+                "&to=" + destinationPoint.getLatitudeE6() / 1E6 + "," + destinationPoint.getLongitudeE6() / 1E6 +
+                "&drivingStyle=2&highwayEfficiency=21.0";
+        Log.i(TAG, "DIRECTIONS API URL: " + directions_api_request_url);
+        new GetRouteTask(getActivity()).execute(directions_api_request_url);
+    }
 
     /* DISPLAY MANEUVER */
     /* **************** */
